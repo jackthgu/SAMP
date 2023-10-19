@@ -7,6 +7,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using DeepLearning;
+using Newtonsoft.Json;
 
 public class SAMP_Demo : NeuralAnimation
 {
@@ -46,6 +47,59 @@ public class SAMP_Demo : NeuralAnimation
     //GoalNet
     public bool UseGoalNet = true;
     public GoalNet goalNet;
+
+    //GU
+    public class SaveTransformData
+    {
+        public List<CustomMatrix4x4> RootTransforms { get; set; }
+        public List<CustomVector3> BonePositions { get; set; }
+    }
+
+    [Serializable]
+    public class CustomMatrix4x4
+    {
+        public float m00, m01, m02, m03;
+        public float m10, m11, m12, m13;
+        public float m20, m21, m22, m23;
+        public float m30, m31, m32, m33;
+
+        public CustomMatrix4x4(Matrix4x4 original)
+        {
+            // Copy the original Matrix4x4 values to this object
+            this.m00 = original.m00;
+            this.m01 = original.m01;
+            this.m02 = original.m02;
+            this.m03 = original.m03;
+            this.m10 = original.m10;
+            this.m11 = original.m11;
+            this.m12 = original.m12;
+            this.m13 = original.m13;
+            this.m20 = original.m20;
+            this.m21 = original.m21;
+            this.m22 = original.m22;
+            this.m23 = original.m23;
+            this.m30 = original.m30;
+            this.m31 = original.m31;
+            this.m32 = original.m32;
+            this.m33 = original.m33;
+        }
+    }
+
+    [Serializable]
+    public class CustomVector3
+    {
+        public float x, y, z;
+
+        public CustomVector3(Vector3 original)
+        {
+            // Copy the original Vector3 values to this object
+            this.x = original.x;
+            this.y = original.y;
+            this.z = original.z;
+        }
+    }
+
+    SaveTransformData data;
 
     public Controller GetController()
     {
@@ -136,6 +190,10 @@ public class SAMP_Demo : NeuralAnimation
         //PathPlanning
         if (UsePathPlanning) { PathPlanning = new PathPlanningUtility(); }
 
+
+        data = new SaveTransformData();
+        data.RootTransforms = new List<CustomMatrix4x4>();
+        data.BonePositions = new List<CustomVector3>();
     }
 
     protected override void Feed()
@@ -164,6 +222,13 @@ public class SAMP_Demo : NeuralAnimation
         else
         {
             Default();
+        }
+
+        // Populate data.RootTransforms and data.BonePositions here
+        data.RootTransforms.Add(new CustomMatrix4x4(RootSeries.Transformations[TimeSeries.Pivot]));
+        for (int i = 0; i < Actor.Bones.Length; i++)
+        {
+            data.BonePositions.Add(new CustomVector3(Actor.Bones[i].Transform.position));
         }
 
         //Input Bone Positions / Velocities
@@ -512,8 +577,15 @@ public class SAMP_Demo : NeuralAnimation
         }
 
 
+
     }
 
+
+    void OnDestroy()
+    {
+        string json = JsonConvert.SerializeObject(data);
+        File.WriteAllText("./test.json", json);
+    }
 
     protected override void OnGUIDerived()
     {
