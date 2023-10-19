@@ -101,6 +101,8 @@ public class SAMP_Demo : NeuralAnimation
 
     SaveTransformData data;
 
+    Data testdata;
+
     public Controller GetController()
     {
         return Controller;
@@ -194,6 +196,8 @@ public class SAMP_Demo : NeuralAnimation
         data = new SaveTransformData();
         data.RootTransforms = new List<CustomMatrix4x4>();
         data.BonePositions = new List<CustomVector3>();
+
+        testdata = new Data(new StreamWriter("./aaaa"));
     }
 
     protected override void Feed()
@@ -238,12 +242,19 @@ public class SAMP_Demo : NeuralAnimation
             NeuralNetwork.Feed(Actor.Bones[i].Transform.forward.GetRelativeDirectionTo(root));
             NeuralNetwork.Feed(Actor.Bones[i].Transform.up.GetRelativeDirectionTo(root));
             NeuralNetwork.Feed(Actor.Bones[i].Velocity.GetRelativeDirectionTo(root));
+
+            testdata.Feed(Actor.Bones[i].Transform.position.GetRelativePositionTo(root), "test");
+            testdata.Feed(Actor.Bones[i].Transform.forward.GetRelativeDirectionTo(root), "test");
+            testdata.Feed(Actor.Bones[i].Transform.up.GetRelativeDirectionTo(root), "test");
+            testdata.Feed(Actor.Bones[i].Velocity.GetRelativeDirectionTo(root), "test");
         }
 
         //Input Inverse Bone Positions
         for (int i = 0; i < Actor.Bones.Length; i++)
         {
             NeuralNetwork.Feed(Actor.Bones[i].Transform.position.GetRelativePositionTo(RootSeries.Transformations.Last()));
+
+            testdata.Feed(Actor.Bones[i].Transform.position.GetRelativePositionTo(RootSeries.Transformations.Last()), "test");
         }
 
         //Input Trajectory Positions / Directions / Velocities / Styles
@@ -253,10 +264,16 @@ public class SAMP_Demo : NeuralAnimation
             NeuralNetwork.FeedXZ(RootSeries.GetPosition(sample.Index).GetRelativePositionTo(root));
             NeuralNetwork.FeedXZ(RootSeries.GetDirection(sample.Index).GetRelativeDirectionTo(root));
             NeuralNetwork.Feed(StyleSeries.Values[sample.Index]);
+
+            testdata.FeedXZ(RootSeries.GetPosition(sample.Index).GetRelativePositionTo(root), "test");
+            testdata.FeedXZ(RootSeries.GetDirection(sample.Index).GetRelativeDirectionTo(root), "test");
+            testdata.Feed(StyleSeries.Values[sample.Index], "test");
         }
 
         //Input Contacts
         NeuralNetwork.Feed(ContactSeries.Values[TimeSeries.Pivot]);
+
+        testdata.Feed(ContactSeries.Values[TimeSeries.Pivot], "test");
 
         //Input Inverse Trajectory Positions 
         for (int i = 0; i < TimeSeries.KeyCount; i++)
@@ -264,6 +281,9 @@ public class SAMP_Demo : NeuralAnimation
             TimeSeries.Sample sample = TimeSeries.GetKey(i);
             NeuralNetwork.FeedXZ(RootSeries.GetPosition(sample.Index).GetRelativePositionTo(GoalSeries.Transformations[TimeSeries.Pivot]));
             NeuralNetwork.FeedXZ(RootSeries.GetDirection(sample.Index).GetRelativeDirectionTo(GoalSeries.Transformations[TimeSeries.Pivot]));
+
+            testdata.FeedXZ(RootSeries.GetPosition(sample.Index).GetRelativePositionTo(GoalSeries.Transformations[TimeSeries.Pivot]), "test");
+            testdata.FeedXZ(RootSeries.GetDirection(sample.Index).GetRelativeDirectionTo(GoalSeries.Transformations[TimeSeries.Pivot]), "test");
         }
 
         //Input Goals
@@ -273,6 +293,10 @@ public class SAMP_Demo : NeuralAnimation
             NeuralNetwork.Feed(GoalSeries.Transformations[sample.Index].GetPosition().GetRelativePositionTo(root));
             NeuralNetwork.Feed(GoalSeries.Transformations[sample.Index].GetForward().GetRelativeDirectionTo(root));
             NeuralNetwork.Feed(GoalSeries.Values[sample.Index]);
+
+            testdata.Feed(GoalSeries.Transformations[sample.Index].GetPosition().GetRelativePositionTo(root), "test");
+            testdata.Feed(GoalSeries.Transformations[sample.Index].GetForward().GetRelativeDirectionTo(root), "test");
+            testdata.Feed(GoalSeries.Values[sample.Index], "test");
         }
 
         //Input Geometry
@@ -280,8 +304,11 @@ public class SAMP_Demo : NeuralAnimation
         {
             NeuralNetwork.Feed(Geometry.References[i].GetRelativePositionTo(root));
             NeuralNetwork.Feed(Geometry.Occupancies[i]);
-        }
 
+            testdata.Feed(Geometry.References[i].GetRelativePositionTo(root), "test");
+            testdata.Feed(Geometry.Occupancies[i], "test");
+        }
+        testdata.Store();
     }
 
     protected override void Read()
@@ -585,6 +612,7 @@ public class SAMP_Demo : NeuralAnimation
     {
         string json = JsonConvert.SerializeObject(data);
         File.WriteAllText("./test.json", json);
+        testdata.Finish();
     }
 
     protected override void OnGUIDerived()
