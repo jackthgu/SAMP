@@ -88,15 +88,29 @@ public class SAMP_Demo : NeuralAnimation
     [Serializable]
     public class CustomVector3
     {
-        public float x, y, z;
+        public float p_x, p_y, p_z;
+        public float q_x, q_y, q_z, q_w;
+        public bool isContact;
 
-        public CustomVector3(Vector3 original)
+        public CustomVector3(Vector3 p_original, Quaternion q_original, bool contact)
         {
             // Copy the original Vector3 values to this object
-            this.x = original.x;
-            this.y = original.y;
-            this.z = original.z;
+            this.p_x = p_original.x;
+            this.p_y = p_original.y;
+            this.p_z = p_original.z;
+
+            this.q_x = q_original.x;
+            this.q_y = q_original.y;
+            this.q_z = q_original.z;
+            this.q_w = q_original.w;
+
+            this.isContact = contact;
         }
+
+    }
+    public bool CheckJointContact(Transform joint)
+    {
+        return Physics.CheckSphere(joint.position, 0.1f);
     }
 
     SaveTransformData data;
@@ -228,7 +242,9 @@ public class SAMP_Demo : NeuralAnimation
         data.RootTransforms.Add(new CustomMatrix4x4(RootSeries.Transformations[TimeSeries.Pivot]));
         for (int i = 0; i < Actor.Bones.Length; i++)
         {
-            data.BonePositions.Add(new CustomVector3(Actor.Bones[i].Transform.position));
+            data.BonePositions.Add(new CustomVector3(Actor.Bones[i].Transform.position, Actor.Bones[i].Transform.rotation,
+                CheckJointContact(Actor.Bones[i].Transform)));
+
         }
 
         //Input Bone Positions / Velocities
