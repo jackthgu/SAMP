@@ -56,6 +56,7 @@ public class SAMP_Demo : NeuralAnimation
     {
         public List<CustomMatrix4x4> RootTransforms { get; set; }
         public List<CustomVector3> BonePositions { get; set; }
+        public List<CustomContact> SAMPContact { get; set; }
     }
 
     public class SaveObjectData
@@ -130,9 +131,10 @@ public class SAMP_Demo : NeuralAnimation
     {
         public float p_x, p_y, p_z;
         public float q_x, q_y, q_z, q_w;
-        public bool isContact;
+        public float v_x, v_y, v_z;
+        public bool iscontact;
 
-        public CustomVector3(Vector3 p_original, Quaternion q_original, bool contact)
+        public CustomVector3(Vector3 p_original, Quaternion q_original, Vector3 v_original, bool _iscontact)
         {
             // Copy the original Vector3 values to this object
             this.p_x = p_original.x;
@@ -144,13 +146,28 @@ public class SAMP_Demo : NeuralAnimation
             this.q_z = q_original.z;
             this.q_w = q_original.w;
 
-            this.isContact = contact;
+            this.v_x = v_original.x;
+            this.v_y = v_original.y;
+            this.v_z = v_original.z;
+
+            this.iscontact = _iscontact;
         }
 
     }
+
+    [Serializable]
+    public class CustomContact
+    {
+        public float[] contact;
+        public CustomContact(float[] _con)
+        {
+            this.contact = _con;
+        }
+    }
+
     public bool CheckJointContact(Transform joint)
     {
-        return Physics.CheckSphere(joint.position, 0.1f);
+        return Physics.CheckSphere(joint.position, 0.01f);
     }
 
     SaveTransformData data;
@@ -249,6 +266,7 @@ public class SAMP_Demo : NeuralAnimation
         data = new SaveTransformData();
         data.RootTransforms = new List<CustomMatrix4x4>();
         data.BonePositions = new List<CustomVector3>();
+        data.SAMPContact = new List<CustomContact>();
 
         Chairs = GameObject.FindGameObjectsWithTag("chairs");
 
@@ -294,8 +312,7 @@ public class SAMP_Demo : NeuralAnimation
         data.RootTransforms.Add(new CustomMatrix4x4(RootSeries.Transformations[TimeSeries.Pivot]));
         for (int i = 0; i < Actor.Bones.Length; i++)
         {
-            data.BonePositions.Add(new CustomVector3(Actor.Bones[i].Transform.position, Actor.Bones[i].Transform.rotation,
-                CheckJointContact(Actor.Bones[i].Transform)));
+            data.BonePositions.Add(new CustomVector3(Actor.Bones[i].Transform.position, Actor.Bones[i].Transform.rotation, Actor.Bones[i].Velocity,CheckJointContact(Actor.Bones[i].Transform)));
 
         }
 
@@ -325,6 +342,8 @@ public class SAMP_Demo : NeuralAnimation
 
         //Input Contacts
         NeuralNetwork.Feed(ContactSeries.Values[TimeSeries.Pivot]);
+        float[] debug = ContactSeries.Values[TimeSeries.Pivot];
+        data.SAMPContact.Add(new CustomContact(debug));
 
         //Input Inverse Trajectory Positions 
         for (int i = 0; i < TimeSeries.KeyCount; i++)
